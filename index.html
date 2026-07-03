@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Focus Sprint</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --accent: #6ee7b7;
+    --accent-break: #93c5fd;
+    --text: #e5e7eb;
+    --muted: #8b92a3;
+    --danger: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px;
+  }
+  .app {
+    width: 100%;
+    max-width: 420px;
+  }
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+    margin: 0 0 4px;
+    letter-spacing: 0.02em;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 28px;
+  }
+  .timer-card {
+    background: var(--panel);
+    border-radius: 20px;
+    padding: 32px 24px;
+    text-align: center;
+    margin-bottom: 20px;
+    border: 1px solid #232733;
+  }
+  .mode-label {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 8px;
+    transition: color 0.3s;
+  }
+  .mode-label.break { color: var(--accent-break); }
+  .active-task {
+    font-size: 14px;
+    color: var(--muted);
+    min-height: 20px;
+    margin-bottom: 16px;
+  }
+  .time {
+    font-size: 64px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 24px;
+  }
+  .controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  button {
+    font-family: inherit;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.15s;
+  }
+  button:active { transform: scale(0.96); }
+  .btn-primary {
+    background: var(--accent);
+    color: #0f1115;
+  }
+  .btn-secondary {
+    background: #232733;
+    color: var(--text);
+  }
+  .btn-secondary:hover { background: #2b3040; }
+  .stats {
+    display: flex;
+    justify-content: space-around;
+    background: var(--panel);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 20px;
+    border: 1px solid #232733;
+  }
+  .stat { text-align: center; }
+  .stat-num {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 2px;
+  }
+  .task-panel {
+    background: var(--panel);
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid #232733;
+  }
+  .task-panel h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
+  .task-input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .task-input-row input {
+    flex: 1;
+    background: #0f1115;
+    border: 1px solid #232733;
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 14px;
+  }
+  .task-input-row input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  ul#taskList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  li.task {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    background: #0f1115;
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+  li.task:hover { border-color: #2b3040; }
+  li.task.selected {
+    border-color: var(--accent);
+    background: #142019;
+  }
+  li.task.done .task-title {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+  .task-title { flex: 1; font-size: 14px; }
+  .task-sprints {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .task-delete {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 16px;
+    padding: 2px 6px;
+    cursor: pointer;
+  }
+  .task-delete:hover { color: var(--danger); }
+  .empty-hint {
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+    padding: 12px 0;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Focus Sprint</h1>
+  <div class="subtitle">Pick a task. Run the sprint. Repeat.</div>
+
+  <div class="timer-card">
+    <div class="mode-label" id="modeLabel">Focus</div>
+    <div class="active-task" id="activeTaskLabel">No task selected</div>
+    <div class="time" id="timeDisplay">25:00</div>
+    <div class="controls">
+      <button class="btn-primary" id="startPauseBtn">Start</button>
+      <button class="btn-secondary" id="resetBtn">Reset</button>
+      <button class="btn-secondary" id="skipBtn">Skip</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num" id="sprintsToday">0</div>
+      <div class="stat-label">Sprints today</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="minutesToday">0</div>
+      <div class="stat-label">Focus minutes</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="streakDays">0</div>
+      <div class="stat-label">Day streak</div>
+    </div>
+  </div>
+
+  <div class="task-panel">
+    <h2>Tasks</h2>
+    <div class="task-input-row">
+      <input type="text" id="taskInput" placeholder="What are you working on?" maxlength="80">
+      <button class="btn-primary" id="addTaskBtn">Add</button>
+    </div>
+    <ul id="taskList"></ul>
+    <div class="empty-hint" id="emptyHint">No tasks yet — add one above and click it to start.</div>
+  </div>
+</div>
+
+<audio id="dingSound" preload="auto">
+  <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
+</audio>
+
+<script>
+  const FOCUS_MIN = 25;
+  const BREAK_MIN = 5;
+  const LONG_BREAK_MIN = 15;
+
+  const state = JSON.parse(localStorage.getItem('focusSprintState') || 'null') || {
+    tasks: [],
+    selectedTaskId: null,
+    mode: 'focus',
+    secondsLeft: FOCUS_MIN * 60,
+    running: false,
+    sprintsCompletedTotal: 0,
+    history: {}
+  };
+
+  let timerInterval = null;
+
+  const todayKey = () => new Date().toISOString().slice(0, 10);
+
+  function save() {
+    localStorage.setItem('focusSprintState', JSON.stringify(state));
+  }
+
+  function todayStats() {
+    const key = todayKey();
+    if (!state.history[key]) state.history[key] = { sprints: 0, minutes: 0 };
+    return state.history[key];
+  }
+
+  function computeStreak() {
+    let streak = 0;
+    let d = new Date();
+    while (true) {
+      const key = d.toISOString().slice(0, 10);
+      const entry = state.history[key];
+      if (entry && entry.sprints > 0) {
+        streak++;
+        d.setDate(d.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }
+
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+    const s = Math.floor(sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  function modeDuration(mode) {
+    if (mode === 'focus') return FOCUS_MIN * 60;
+    if (mode === 'break') return BREAK_MIN * 60;
+    return LONG_BREAK_MIN * 60;
+  }
+
+  function render() {
+    const modeLabel = document.getElementById('modeLabel');
+    modeLabel.textContent = state.mode === 'focus' ? 'Focus' : (state.mode === 'break' ? 'Short Break' : 'Long Break');
+    modeLabel.className = 'mode-label' + (state.mode !== 'focus' ? ' break' : '');
+
+    document.getElementById('timeDisplay').textContent = formatTime(state.secondsLeft);
+    document.getElementById('startPauseBtn').textContent = state.running ? 'Pause' : 'Start';
+
+    const selectedTask = state.tasks.find(t => t.id === state.selectedTaskId);
+    document.getElementById('activeTaskLabel').textContent = selectedTask
+      ? selectedTask.title
+      : (state.mode === 'focus' ? 'No task selected' : 'Take a breather');
+
+    const stats = todayStats();
+    document.getElementById('sprintsToday').textContent = stats.sprints;
+    document.getElementById('minutesToday').textContent = stats.minutes;
+    document.getElementById('streakDays').textContent = computeStreak();
+
+    const list = document.getElementById('taskList');
+    list.innerHTML = '';
+    document.getElementById('emptyHint').style.display = state.tasks.length ? 'none' : 'block';
+
+    state.tasks.forEach(task => {
+      const li = document.createElement('li');
+      li.className = 'task' + (task.id === state.selectedTaskId ? ' selected' : '') + (task.done ? ' done' : '');
+      li.innerHTML = `
+        <span class="task-title">${escapeHtml(task.title)}</span>
+        <span class="task-sprints">${task.sprints} 🍅</span>
+        <button class="task-delete" data-id="${task.id}" title="Delete">✕</button>
+      `;
+      li.addEventListener('click', (e) => {
+        if (e.target.classList.contains('task-delete')) return;
+        state.selectedTaskId = task.id;
+        save();
+        render();
+      });
+      li.querySelector('.task-delete').addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.tasks = state.tasks.filter(t => t.id !== task.id);
+        if (state.selectedTaskId === task.id) state.selectedTaskId = null;
+        save();
+        render();
+      });
+      list.appendChild(li);
+    });
+
+    document.title = `${formatTime(state.secondsLeft)} · Focus Sprint`;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function tick() {
+    if (state.secondsLeft > 0) {
+      state.secondsLeft--;
+      save();
+      render();
+    } else {
+      completeInterval();
+    }
+  }
+
+  function completeInterval() {
+    playDing();
+    if (state.mode === 'focus') {
+      const stats = todayStats();
+      stats.sprints++;
+      stats.minutes += FOCUS_MIN;
+      state.sprintsCompletedTotal++;
+
+      const task = state.tasks.find(t => t.id === state.selectedTaskId);
+      if (task) task.sprints++;
+
+      const nextMode = (state.sprintsCompletedTotal % 4 === 0) ? 'longBreak' : 'break';
+      state.mode = nextMode;
+      state.secondsLeft = modeDuration(nextMode);
+    } else {
+      state.mode = 'focus';
+      state.secondsLeft = modeDuration('focus');
+    }
+    state.running = false;
+    stopInterval();
+    save();
+    render();
+    notify();
+  }
+
+  function notify() {
+    if (Notification && Notification.permission === 'granted') {
+      new Notification(state.mode === 'focus' ? "Break's over — back to it!" : 'Sprint complete! Take a break.');
+    }
+  }
+
+  function playDing() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.6);
+    } catch (e) {}
+  }
+
+  function startInterval() {
+    if (timerInterval) return;
+    timerInterval = setInterval(tick, 1000);
+  }
+  function stopInterval() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+
+  document.getElementById('startPauseBtn').addEventListener('click', () => {
+    state.running = !state.running;
+    if (state.running) {
+      startInterval();
+      if (window.Notification && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    } else {
+      stopInterval();
+    }
+    save();
+    render();
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    state.running = false;
+    stopInterval();
+    state.secondsLeft = modeDuration(state.mode);
+    save();
+    render();
+  });
+
+  document.getElementById('skipBtn').addEventListener('click', () => {
+    stopInterval();
+    state.secondsLeft = 0;
+    completeInterval();
+  });
+
+  document.getElementById('addTaskBtn').addEventListener('click', addTask);
+  document.getElementById('taskInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addTask();
+  });
+
+  function addTask() {
+    const input = document.getElementById('taskInput');
+    const title = input.value.trim();
+    if (!title) return;
+    const task = { id: Date.now().toString(), title, sprints: 0, done: false };
+    state.tasks.push(task);
+    if (!state.selectedTaskId) state.selectedTaskId = task.id;
+    input.value = '';
+    save();
+    render();
+  }
+
+  if (state.running) startInterval();
+  render();
+</script>
+</body>
+</html>
